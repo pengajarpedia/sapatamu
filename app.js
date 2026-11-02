@@ -7,7 +7,16 @@ const tombolRekam = document.getElementById("tombol-rekam");
 const formKetik = document.getElementById("form-ketik");
 const inputKetik = document.getElementById("input-ketik");
 const tombolKirim = formKetik.querySelector("button");
+const tombolAkhiri = document.getElementById("tombol-akhiri");
+const bagianLaporan = document.getElementById("laporan");
 const statusEl = document.getElementById("status");
+
+const NAMA_KRITERIA = {
+  tataBahasa: "Tata bahasa & kosakata",
+  bahasaLayanan: "Bahasa layanan",
+  penyelesaianTugas: "Penyelesaian tugas",
+  kejelasan: "Kejelasan"
+};
 
 // ===== 2. Keadaan (state) aplikasi =====
 let skenarioAktif = null;
@@ -37,7 +46,7 @@ if (SpeechRecognition) {
 
 tombolRekam.addEventListener("click", () => {
   if (!pengenal) return;
-  speechSynthesis.cancel(); // hentikan suara tamu dulu
+  speechSynthesis.cancel();
   tombolRekam.disabled = true;
   tombolRekam.textContent = "Mendengarkan...";
   tampilStatus("");
@@ -56,7 +65,18 @@ formKetik.addEventListener("submit", (e) => {
   kirimJawaban(teks);
 });
 
-// ===== 5. Muat daftar skenario dari server =====
+// ===== 5. Tombol akhiri percakapan =====
+tombolAkhiri.addEventListener("click", () => {
+  const jumlahJawaban = riwayat.filter((p) => p.peran === "siswa").length;
+  if (jumlahJawaban < 2) {
+    tampilStatus("Jawab minimal 2 kali sebelum melihat nilai.");
+    return;
+  }
+  speechSynthesis.cancel();
+  selesaiPercakapan();
+});
+
+// ===== 6. Muat daftar skenario dari server =====
 async function muatSkenario() {
   try {
     const res = await fetch("/api/scenarios");
@@ -73,13 +93,15 @@ async function muatSkenario() {
   }
 }
 
-// ===== 6. Mulai skenario =====
+// ===== 7. Mulai skenario =====
 function mulaiSkenario(s) {
   skenarioAktif = s;
   riwayat = [];
   sedangMenunggu = false;
   percakapanSelesai = false;
   chat.innerHTML = "";
+  bagianLaporan.hidden = true;
+  bagianLaporan.innerHTML = "";
   judulSkenario.textContent = s.judul;
   bagianPercakapan.hidden = false;
   tampilStatus("");
@@ -89,7 +111,7 @@ function mulaiSkenario(s) {
   bagianPercakapan.scrollIntoView({ behavior: "smooth" });
 }
 
-// ===== 7. Kirim jawaban siswa ke AI tamu =====
+// ===== 8. Kirim jawaban siswa ke AI tamu =====
 async function kirimJawaban(teks) {
   if (sedangMenunggu || percakapanSelesai || !skenarioAktif) return;
 
@@ -98,20 +120,8 @@ async function kirimJawaban(teks) {
   perbaruiTombol();
   tampilStatus("Tamu sedang berpikir...");
 
-  // Batasi waktu tunggu 30 detik agar aplikasi tidak menggantung
-  const pengendali = new AbortController();
-  const batasWaktu = setTimeout(() => pengendali.abort(), 40000);
-
   try {
-    const res = await fetch("/api/guest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skenarioId: skenarioAktif.id, riwayat }),
-      signal: pengendali.signal
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "Terjadi kesalahan.");
-
+    const data = await panggilAPI("/api/guest", { skenarioId: skenarioAktif.id, riwayat });
     tambahPesan("tamu", data.balasan);
     bicara(data.balasan);
     tampilStatus("");
@@ -121,21 +131,110 @@ async function kirimJawaban(teks) {
     riwayat.pop();
     chat.lastChild.remove();
     inputKetik.value = teks;
-    const pesan = err.name === "AbortError" ? "Tamu terlalu lama menjawab." : err.message;
-    tampilStatus(pesan + " Jawabanmu belum terkirim, silakan kirim ulang.");
+    tampilStatus(err.message + " Jawabanmu belum terkirim, silakan kirim ulang.");
   } finally {
-    clearTimeout(batasWaktu);
     sedangMenunggu = false;
     perbaruiTombol();
   }
 }
 
-// ===== 8. Fungsi-fungsi bantu =====
+// ===== 9. Penilaian oleh AI =====
+async function selesaiPercakapan() {
+  percakapanSelesai = true;
+  perbaruiTombol();
+  tampilStatus("");
+  bagianLaporan.hidden = false;
+  bagianLaporan.innerHTML = "";
+  bagianLaporan.append(el("p", "", "Sedang menilai jawabanmu..."));
+  bagianLaporan.scrollIntoView({ behavior: "smooth" });
+
+  try {
+    const data = await panggilAPI("/api/evaluate", { skenarioId: skenarioAktif.id, riwayat });
+    tampilLaporan(data);
+  } catch (err) {
+    bagianLaporan.innerHTML = "";
+    const ulang = el("button", "tombol-sekunder", "Coba nilai lagi");
+    ulang.addEventListener("click", selesaiPercakapan);
+    bagianLaporan.append(el("p", "", err.message), ulang);
+  }
+}
+
+function tampilLaporan(data) {
+  bagianLaporan.innerHTML = "";
+  bagianLaporan.append(
+    el("h2", "", "Hasil latihanmu"),
+    el("p", "skor-total", data.total + "/100"),
+    el("p", "", data.ringkasan)
+  );
+
+  // Nilai per kriteria dalam bentuk batang
+  for (const [kunci, nama] of Object.entries(NAMA_KRITERIA)) {
+    const nilai = data.skor[kunci];
+    const baris = el("div", "baris-skor");
+    baris.append(el("span", "", nama), el("span", "", nilai + "/4"));
+    const bar = el("div", "bar");
+    const isi = el("div", "isi-bar");
+    isi.style.width = (nilai / 4) * 100 + "%";
+    bar.append(isi);
+    bagianLaporan.append(baris, bar);
+  }
+
+  if (data.kelebihan.length) {
+    bagianLaporan.append(el("h3", "", "Yang sudah bagus"));
+    const daftar = el("ul");
+    data.kelebihan.forEach((k) => daftar.append(el("li", "", k)));
+    bagianLaporan.append(daftar);
+  }
+
+  if (data.perbaikan.length) {
+    bagianLaporan.append(el("h3", "", "Coba katakan seperti ini"));
+    data.perbaikan.forEach((p) => {
+      const kartu = el("div", "kartu-perbaikan");
+      const dengar = el("button", "tombol-kecil", "🔊 Dengarkan");
+      dengar.addEventListener("click", () => bicara(p.lebihBaik));
+      kartu.append(
+        el("p", "asli", "Kamu: " + p.asli),
+        el("p", "lebih-baik", "Lebih baik: " + p.lebihBaik),
+        el("p", "alasan", p.alasan),
+        dengar
+      );
+      bagianLaporan.append(kartu);
+    });
+  }
+
+  bagianLaporan.append(el("p", "disclaimer",
+    "Nilai ini dibuat oleh AI sebagai umpan balik latihan, bukan nilai resmi. Guru tetap dapat meninjau hasilnya."));
+  const ulang = el("button", "tombol-sekunder", "Latihan lagi");
+  ulang.addEventListener("click", () => mulaiSkenario(skenarioAktif));
+  bagianLaporan.append(ulang);
+}
+
+// ===== 10. Fungsi-fungsi bantu =====
+// Kirim data ke server, dengan batas waktu 40 detik
+async function panggilAPI(url, body) {
+  const pengendali = new AbortController();
+  const batasWaktu = setTimeout(() => pengendali.abort(), 40000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: pengendali.signal
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Terjadi kesalahan.");
+    return data;
+  } catch (err) {
+    if (err.name === "AbortError") throw new Error("Server terlalu lama menjawab.");
+    throw err;
+  } finally {
+    clearTimeout(batasWaktu);
+  }
+}
+
 function tambahPesan(peran, teks) {
   riwayat.push({ peran, teks });
-  const div = document.createElement("div");
-  div.className = "pesan " + peran;
-  div.textContent = teks;
+  const div = el("div", "pesan " + peran, teks);
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
@@ -149,23 +248,26 @@ function bicara(teks) {
   speechSynthesis.speak(ucapan);
 }
 
-function selesaiPercakapan() {
-  percakapanSelesai = true;
-  perbaruiTombol();
-  tampilStatus("Percakapan selesai! Penilaian akan ditambahkan di langkah 5.");
-}
-
 function perbaruiTombol() {
   const terkunci = sedangMenunggu || percakapanSelesai;
   tombolRekam.disabled = terkunci || !pengenal;
   inputKetik.disabled = terkunci;
   tombolKirim.disabled = terkunci;
+  tombolAkhiri.disabled = terkunci;
 }
 
 function tampilStatus(teks) {
   statusEl.textContent = teks;
 }
 
-// ===== 9. Jalankan saat halaman dibuka =====
+// Membuat elemen HTML dengan aman (teks dari AI tidak dijalankan sebagai kode)
+function el(tag, className = "", teks = "") {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (teks) e.textContent = teks;
+  return e;
+}
+
+// ===== 11. Jalankan saat halaman dibuka =====
 perbaruiTombol();
 muatSkenario();
