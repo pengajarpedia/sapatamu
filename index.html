@@ -3,43 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SapaTamu – Latihan Melayani Tamu</title>
+  <title>SapaTamu – Latihan Bahasa Inggris Pariwisata Bali</title>
+  <meta name="description" content="Latihan berbicara bahasa Inggris untuk 60 profesi pariwisata di Bali, dengan tamu yang diperankan AI dan umpan balik langsung.">
+  <meta name="theme-color" content="#1F2A56">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
-    <header>
-      <h1>SapaTamu</h1>
-      <p>Latihan bahasa Inggris untuk profesi pariwisata di Bali</p>
-    </header>
+  <header class="kepala">
+    <div class="kepala-isi">
+      <a href="#" class="merek">
+        <img src="logo.svg" alt="" width="36" height="36">
+        <span>SapaTamu</span>
+      </a>
+      <span class="merek-ket">Latihan bahasa Inggris pariwisata Bali</span>
+    </div>
+  </header>
 
-    <!-- Bagian 1: pilih bidang → profesi → kasus -->
-    <section id="pilih">
+  <main>
+    <!-- Bagian pembuka -->
+    <section class="hero">
+      <div class="hero-teks">
+        <p class="gelembung" lang="en">Good morning!<br>How may I help you?</p>
+        <h1>Latihan melayani tamu asing, sebelum bertemu tamu sungguhan.</h1>
+        <p class="hero-sub">Pilih satu dari 60 profesi pariwisata di Bali. AI berperan sebagai tamu atau rekan kerja, kamu menjawab dengan suara atau ketikan, lalu dapat nilai dan contoh kalimat yang lebih baik.</p>
+        <a href="#pilih" class="tombol-utama">Mulai latihan</a>
+      </div>
+      <!-- Gambar pembuka; otomatis disembunyikan kalau file belum ada -->
+      <figure class="hero-gambar">
+        <img src="img/hero.jpg" alt="Ilustrasi siswa pariwisata menyambut tamu asing di Bali" onerror="this.closest('figure').hidden = true">
+      </figure>
+    </section>
+
+    <ol class="langkah">
+      <li><strong>Pilih profesi dan kasus</strong><span>Dari resepsionis sampai pemandu wisata</span></li>
+      <li><strong>Bicara dalam bahasa Inggris</strong><span>Lewat mikrofon, atau ketik jawabanmu</span></li>
+      <li><strong>Lihat nilai dan saran</strong><span>Dengarkan contoh kalimat yang lebih baik</span></li>
+    </ol>
+
+    <!-- Bagian 1: pilih bidang, profesi, lalu kasus -->
+    <section id="pilih" class="panel">
       <div class="kepala-pilih">
         <button id="tombol-kembali" type="button" class="tombol-kecil" hidden>← Kembali</button>
         <h2 id="judul-pilih">Pilih bidang</h2>
       </div>
+      <p id="jejak" class="jejak"></p>
       <div id="daftar-pilihan" class="daftar-pilihan"></div>
     </section>
 
     <!-- Bagian 2: percakapan (tersembunyi sampai kasus dipilih) -->
-    <section id="percakapan" hidden>
-      <h2 id="judul-skenario"></h2>
-      <div id="kartu-tugas" class="kartu-tugas"></div>
-      <div id="chat"></div>
-      <p class="privasi">Suaramu diubah menjadi teks oleh browser. Rekaman suara tidak disimpan. Jangan menyebut data pribadi asli.</p>
-      <button id="tombol-rekam">🎤 Tekan untuk bicara</button>
-      <form id="form-ketik">
-        <input id="input-ketik" placeholder="Atau ketik jawabanmu di sini..." autocomplete="off">
-        <button type="submit">Kirim</button>
-      </form>
-      <button id="tombol-akhiri" type="button" class="tombol-sekunder">Akhiri & lihat nilai</button>
-      <p id="status"></p>
+    <section id="percakapan" class="panel percakapan" hidden>
+      <aside class="kolom-tugas">
+        <h2 id="judul-skenario"></h2>
+        <div id="kartu-tugas" class="kartu-tugas"></div>
+        <button id="tombol-ganti" type="button" class="tombol-sekunder">Ganti kasus atau profesi</button>
+      </aside>
+      <div class="kolom-chat">
+        <div id="chat" aria-live="polite"></div>
+        <p class="privasi">Suaramu diubah menjadi teks oleh browser. Rekaman suara tidak disimpan. Jangan menyebut data pribadi asli.</p>
+        <button id="tombol-rekam" type="button">🎤 Tekan untuk bicara</button>
+        <form id="form-ketik">
+          <input id="input-ketik" placeholder="Atau ketik jawabanmu di sini..." autocomplete="off" aria-label="Ketik jawabanmu">
+          <button type="submit">Kirim</button>
+        </form>
+        <button id="tombol-akhiri" type="button" class="tombol-sekunder">Akhiri & lihat nilai</button>
+        <p id="status" role="status"></p>
+      </div>
     </section>
 
     <!-- Bagian 3: laporan nilai -->
-    <section id="laporan" hidden></section>
+    <section id="laporan" class="panel" hidden></section>
   </main>
+
+  <!-- Konfirmasi saat siswa pindah kasus sebelum latihan selesai -->
+  <dialog id="dialog-keluar" class="dialog" aria-labelledby="dialog-judul">
+    <h2 id="dialog-judul">Latihan ini belum selesai</h2>
+    <p>Kalau kamu pindah sekarang, percakapan ini akan dihapus dan tidak dinilai.</p>
+    <div class="dialog-tombol">
+      <button id="dialog-lanjut" type="button" class="tombol-isi">Lanjutkan latihan</button>
+      <button id="dialog-nilai" type="button" class="tombol-sekunder">Akhiri & lihat nilai dulu</button>
+      <button id="dialog-keluar-tanpa-nilai" type="button" class="tombol-teks">Pindah tanpa nilai</button>
+    </div>
+  </dialog>
+
+  <footer class="kaki">
+    <p>SapaTamu adalah alat latihan. Nilai dibuat oleh AI sebagai umpan balik, bukan nilai resmi.</p>
+  </footer>
+
   <script src="app.js"></script>
 </body>
 </html>

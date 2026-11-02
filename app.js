@@ -41,6 +41,7 @@ let skenarioAktif = null;     // kasus yang sedang dilatih
 let riwayat = [];             // isi percakapan: [{ peran, teks }]
 let sedangMenunggu = false;   // true saat menunggu balasan AI
 let percakapanSelesai = false;
+let sesi = 0;                 // nomor sesi latihan; jawaban AI dari sesi lama diabaikan
 
 // ===== 3. Pengenal suara (speech-to-text bawaan browser) =====
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -64,7 +65,7 @@ if (SpeechRecognition) {
 
 tombolRekam.addEventListener("click", () => {
   if (!pengenal) return;
-  speechSynthesis.cancel();
+  hentikanSuara();
   tombolRekam.disabled = true;
   tombolRekam.textContent = "Mendengarkan...";
   tampilStatus("");
@@ -90,7 +91,7 @@ tombolAkhiri.addEventListener("click", () => {
     tampilStatus("Jawab minimal 2 kali sebelum melihat nilai.");
     return;
   }
-  speechSynthesis.cancel();
+  hentikanSuara();
   selesaiPercakapan();
 });
 
@@ -107,33 +108,35 @@ async function muatData() {
 }
 
 // ===== 7. Pilih bidang → profesi → kasus =====
+const jejak = document.getElementById("jejak");
+
 function tampilPilihan() {
   daftarPilihan.innerHTML = "";
 
   if (!pilihanBidang) {
-    judulPilih.textContent = "1. Pilih bidang";
+    judulPilih.textContent = "Pilih bidang";
+    jejak.textContent = "Langkah 1 dari 3";
     tombolKembali.hidden = true;
-    DATA.kelompok.forEach((b) => {
-      const ikon = IKON_BIDANG[b.id] || "📌";
-      daftarPilihan.append(kartu(ikon + " " + b.nama, b.profesi.length + " profesi", () => {
-        pilihanBidang = b;
-        tampilPilihan();
-      }));
-    });
+    daftarPilihan.className = "daftar-pilihan daftar-bidang";
+    DATA.kelompok.forEach((b) => daftarPilihan.append(kartuBidang(b)));
   } else if (!pilihanProfesi) {
-    judulPilih.textContent = "2. Pilih profesi · " + pilihanBidang.nama;
+    judulPilih.textContent = "Pilih profesi";
+    jejak.textContent = "Langkah 2 dari 3 › " + pilihanBidang.nama;
     tombolKembali.hidden = false;
+    daftarPilihan.className = "daftar-pilihan daftar-profesi";
     pilihanBidang.profesi.forEach((p) => {
-      daftarPilihan.append(kartu(p.nama, p.kompetensi, () => {
+      daftarPilihan.append(tombolPilihan("baris-profesi", p.nama, p.kompetensi, () => {
         pilihanProfesi = p;
         tampilPilihan();
       }));
     });
   } else {
-    judulPilih.textContent = "3. Pilih kasus · " + pilihanProfesi.nama;
+    judulPilih.textContent = "Pilih kasus";
+    jejak.textContent = "Langkah 3 dari 3 › " + pilihanBidang.nama + " › " + pilihanProfesi.nama;
     tombolKembali.hidden = false;
+    daftarPilihan.className = "daftar-pilihan daftar-kasus";
     pilihanProfesi.skenario.forEach((s, i) => {
-      daftarPilihan.append(kartu("Kasus " + (i + 1), s.masalah, () => {
+      daftarPilihan.append(tombolPilihan("kartu-kasus", "Kasus " + (i + 1), s.masalah, () => {
         mulaiSkenario({ ...s, profesi: pilihanProfesi, bidang: pilihanBidang });
       }));
     });
@@ -146,8 +149,31 @@ tombolKembali.addEventListener("click", () => {
   tampilPilihan();
 });
 
-function kartu(judul, keterangan, saatDiklik) {
-  const tombol = el("button", "kartu-skenario");
+// Kartu bidang bergambar. Kalau gambar belum ada, ikon cadangan yang tampil.
+function kartuBidang(b) {
+  const tombol = el("button", "kartu-bidang");
+  tombol.type = "button";
+
+  const gambar = el("div", "gambar-bidang");
+  const ikon = el("span", "ikon-cadangan", IKON_BIDANG[b.id] || "📌");
+  ikon.setAttribute("aria-hidden", "true");
+  const img = document.createElement("img");
+  img.src = "img/bidang/" + b.id + ".jpg";
+  img.alt = "";
+  img.loading = "lazy";
+  img.addEventListener("error", () => img.remove());
+  gambar.append(ikon, img);
+
+  tombol.append(gambar, el("strong", "nama", b.nama), el("span", "jumlah", b.profesi.length + " profesi"));
+  tombol.addEventListener("click", () => {
+    pilihanBidang = b;
+    tampilPilihan();
+  });
+  return tombol;
+}
+
+function tombolPilihan(kelas, judul, keterangan, saatDiklik) {
+  const tombol = el("button", kelas);
   tombol.type = "button";
   tombol.append(el("strong", "", judul), el("span", "", keterangan));
   tombol.addEventListener("click", saatDiklik);
@@ -156,7 +182,8 @@ function kartu(judul, keterangan, saatDiklik) {
 
 // ===== 8. Mulai kasus =====
 function mulaiSkenario(s) {
-  speechSynthesis.cancel();
+  hentikanSuara();
+  sesi++;
   skenarioAktif = s;
   riwayat = [];
   sedangMenunggu = false;
@@ -165,7 +192,7 @@ function mulaiSkenario(s) {
   bagianLaporan.hidden = true;
   bagianLaporan.innerHTML = "";
 
-  judulSkenario.textContent = "Kamu sebagai: " + s.profesi.nama;
+  judulSkenario.textContent = "Kamu sebagai " + s.profesi.nama;
   kartuTugas.innerHTML = "";
   kartuTugas.append(
     el("p", "label-tugas", "Situasi"),
@@ -174,6 +201,7 @@ function mulaiSkenario(s) {
     el("p", "", DATA.tantangan)
   );
 
+  bagianPilih.hidden = true; // daftar pilihan disembunyikan selama latihan
   bagianPercakapan.hidden = false;
   bagianPercakapan.scrollIntoView({ behavior: "smooth" });
   mintaPembuka();
@@ -181,23 +209,28 @@ function mulaiSkenario(s) {
 
 // AI membuka percakapan sesuai kasus (memperkenalkan diri dan masalahnya)
 async function mintaPembuka() {
+  const sesiIni = sesi;
   sedangMenunggu = true;
   perbaruiTombol();
   tampilStatus("Menyiapkan situasi...");
   try {
     const data = await panggilAPI("/api/guest", { skenarioId: skenarioAktif.id, riwayat: [] });
+    if (sesiIni !== sesi) return; // siswa sudah pindah kasus
     tambahPesan("tamu", data.balasan);
     bicara(data.balasan);
     tampilStatus("");
   } catch (err) {
+    if (sesiIni !== sesi) return;
     tampilStatus(err.message + " ");
     const ulang = el("button", "tombol-kecil", "Coba lagi");
     ulang.type = "button";
     ulang.addEventListener("click", mintaPembuka);
     statusEl.append(ulang);
   } finally {
-    sedangMenunggu = false;
-    perbaruiTombol();
+    if (sesiIni === sesi) {
+      sedangMenunggu = false;
+      perbaruiTombol();
+    }
   }
 }
 
@@ -205,6 +238,7 @@ async function mintaPembuka() {
 async function kirimJawaban(teks) {
   if (sedangMenunggu || percakapanSelesai || !skenarioAktif || riwayat.length === 0) return;
 
+  const sesiIni = sesi;
   tambahPesan("siswa", teks);
   sedangMenunggu = true;
   perbaruiTombol();
@@ -212,24 +246,29 @@ async function kirimJawaban(teks) {
 
   try {
     const data = await panggilAPI("/api/guest", { skenarioId: skenarioAktif.id, riwayat });
+    if (sesiIni !== sesi) return; // siswa sudah pindah kasus
     tambahPesan("tamu", data.balasan);
     bicara(data.balasan);
     tampilStatus("");
     if (data.selesai) selesaiPercakapan();
   } catch (err) {
+    if (sesiIni !== sesi) return;
     // Batalkan jawaban terakhir dan kembalikan ke kolom ketik agar bisa dikirim ulang
     riwayat.pop();
     chat.lastChild.remove();
     inputKetik.value = teks;
     tampilStatus(err.message + " Jawabanmu belum terkirim, silakan kirim ulang.");
   } finally {
-    sedangMenunggu = false;
-    perbaruiTombol();
+    if (sesiIni === sesi) {
+      sedangMenunggu = false;
+      perbaruiTombol();
+    }
   }
 }
 
 // ===== 10. Penilaian oleh AI =====
 async function selesaiPercakapan() {
+  const sesiIni = sesi;
   percakapanSelesai = true;
   perbaruiTombol();
   tampilStatus("");
@@ -240,8 +279,10 @@ async function selesaiPercakapan() {
 
   try {
     const data = await panggilAPI("/api/evaluate", { skenarioId: skenarioAktif.id, riwayat });
+    if (sesiIni !== sesi) return;
     tampilLaporan(data);
   } catch (err) {
+    if (sesiIni !== sesi) return;
     bagianLaporan.innerHTML = "";
     const ulang = el("button", "tombol-sekunder", "Coba nilai lagi");
     ulang.addEventListener("click", selesaiPercakapan);
@@ -298,11 +339,82 @@ function tampilLaporan(data) {
   const ulang = el("button", "tombol-sekunder", "Latihan lagi (kasus yang sama)");
   ulang.addEventListener("click", () => mulaiSkenario(skenarioAktif));
   const lain = el("button", "tombol-sekunder", "Pilih kasus lain");
-  lain.addEventListener("click", () => bagianPilih.scrollIntoView({ behavior: "smooth" }));
+  lain.addEventListener("click", kembaliKePilihan);
   bagianLaporan.append(ulang, lain);
 }
 
-// ===== 11. Fungsi-fungsi bantu =====
+// ===== 11. Ganti kasus atau profesi =====
+const tombolGanti = document.getElementById("tombol-ganti");
+const dialogKeluar = document.getElementById("dialog-keluar");
+const dialogNilai = document.getElementById("dialog-nilai");
+const dialogKeluarTanpaNilai = document.getElementById("dialog-keluar-tanpa-nilai");
+const dialogLanjut = document.getElementById("dialog-lanjut");
+
+function jumlahJawaban() {
+  return riwayat.filter((p) => p.peran === "siswa").length;
+}
+
+// Siswa sudah menjawab tapi latihan belum dinilai
+function latihanBelumSelesai() {
+  return !bagianPercakapan.hidden && !percakapanSelesai && jumlahJawaban() > 0;
+}
+
+// Dipanggil saat siswa ingin pindah kasus atau profesi
+function mintaGantiKasus() {
+  if (bagianPercakapan.hidden) {
+    bagianPilih.scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+  if (!latihanBelumSelesai()) {
+    kembaliKePilihan();
+    return;
+  }
+  dialogNilai.hidden = jumlahJawaban() < 2;
+  dialogKeluar.showModal();
+}
+
+function kembaliKePilihan() {
+  sesi++; // jawaban AI yang masih dalam perjalanan akan diabaikan
+  hentikanSuara();
+  skenarioAktif = null;
+  riwayat = [];
+  sedangMenunggu = false;
+  percakapanSelesai = false;
+  chat.innerHTML = "";
+  tampilStatus("");
+  bagianPercakapan.hidden = true;
+  bagianLaporan.hidden = true;
+  bagianLaporan.innerHTML = "";
+  bagianPilih.hidden = false;
+  tampilPilihan();
+  bagianPilih.scrollIntoView({ behavior: "smooth" });
+}
+
+tombolGanti.addEventListener("click", mintaGantiKasus);
+dialogLanjut.addEventListener("click", () => dialogKeluar.close());
+dialogKeluarTanpaNilai.addEventListener("click", () => {
+  dialogKeluar.close();
+  kembaliKePilihan();
+});
+dialogNilai.addEventListener("click", () => {
+  dialogKeluar.close();
+  hentikanSuara();
+  selesaiPercakapan();
+});
+
+// Tombol "Mulai latihan" di bagian pembuka
+document.querySelector(".tombol-utama").addEventListener("click", (e) => {
+  e.preventDefault();
+  mintaGantiKasus();
+});
+
+// ===== 12. Fungsi-fungsi bantu =====
+// Hentikan suara tamu dan mikrofon yang sedang aktif
+function hentikanSuara() {
+  try { speechSynthesis.cancel(); } catch {}
+  try { if (pengenal) pengenal.abort(); } catch {}
+}
+
 // Kirim data ke server, dengan batas waktu 40 detik
 async function panggilAPI(url, body) {
   const pengendali = new AbortController();
@@ -366,6 +478,6 @@ function el(tag, className = "", teks = "") {
   return e;
 }
 
-// ===== 12. Jalankan saat halaman dibuka =====
+// ===== 13. Jalankan saat halaman dibuka =====
 perbaruiTombol();
 muatData();
