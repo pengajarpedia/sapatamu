@@ -18,3 +18,4 @@ section { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 1
 #form-ketik input { flex: 1; padding: 10px; border: 1px solid #d9e2ec; border-radius: 8px; font: inherit; }
 #form-ketik button { padding: 10px 14px; border: none; border-radius: 8px; background: #334e68; color: #fff; cursor: pointer; }
 #status { font-size: 14px; color: #b44d12; min-height: 20px; }
+#form-ketik input:disabled, #form-ketik button:disabled { opacity: 0.5; cursor: not-allowed; }
