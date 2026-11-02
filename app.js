@@ -1,7 +1,11 @@
 // ===== 1. Ambil elemen-elemen dari halaman =====
-const daftarSkenario = document.getElementById("daftar-skenario");
+const bagianPilih = document.getElementById("pilih");
+const judulPilih = document.getElementById("judul-pilih");
+const tombolKembali = document.getElementById("tombol-kembali");
+const daftarPilihan = document.getElementById("daftar-pilihan");
 const bagianPercakapan = document.getElementById("percakapan");
 const judulSkenario = document.getElementById("judul-skenario");
+const kartuTugas = document.getElementById("kartu-tugas");
 const chat = document.getElementById("chat");
 const tombolRekam = document.getElementById("tombol-rekam");
 const formKetik = document.getElementById("form-ketik");
@@ -14,12 +18,26 @@ const statusEl = document.getElementById("status");
 const NAMA_KRITERIA = {
   tataBahasa: "Tata bahasa & kosakata",
   bahasaLayanan: "Bahasa layanan",
-  penyelesaianTugas: "Penyelesaian tugas",
+  penyelesaianTugas: "Penyelesaian masalah",
   kejelasan: "Kejelasan"
 };
 
+const IKON_BIDANG = {
+  "perhotelan": "🏨",
+  "kuliner": "🍽️",
+  "usaha-layanan-pariwisata": "🧭",
+  "kecantikan-dan-spa": "💆",
+  "transportasi-wisata": "🚐",
+  "objek-wisata-dan-rekreasi": "🏛️",
+  "pemasaran-digital-pariwisata": "📱",
+  "pendukung-pariwisata": "💐"
+};
+
 // ===== 2. Keadaan (state) aplikasi =====
-let skenarioAktif = null;
+let DATA = { tantangan: "", kelompok: [] };
+let pilihanBidang = null;     // bidang yang sedang dibuka
+let pilihanProfesi = null;    // profesi yang sedang dibuka
+let skenarioAktif = null;     // kasus yang sedang dilatih
 let riwayat = [];             // isi percakapan: [{ peran, teks }]
 let sedangMenunggu = false;   // true saat menunggu balasan AI
 let percakapanSelesai = false;
@@ -76,25 +94,69 @@ tombolAkhiri.addEventListener("click", () => {
   selesaiPercakapan();
 });
 
-// ===== 6. Muat daftar skenario dari server =====
-async function muatSkenario() {
+// ===== 6. Muat data bidang, profesi, dan kasus dari server =====
+async function muatData() {
   try {
     const res = await fetch("/api/scenarios");
-    const daftar = await res.json();
-    daftar.forEach((s) => {
-      const kartu = document.createElement("button");
-      kartu.className = "kartu-skenario";
-      kartu.innerHTML = `<strong>${s.judul}</strong><span>${s.deskripsi}</span>`;
-      kartu.addEventListener("click", () => mulaiSkenario(s));
-      daftarSkenario.appendChild(kartu);
-    });
+    if (!res.ok) throw new Error();
+    DATA = await res.json();
+    tampilPilihan();
   } catch {
-    daftarSkenario.textContent = "Gagal memuat skenario. Silakan muat ulang halaman.";
+    daftarPilihan.textContent = "Gagal memuat daftar profesi. Silakan muat ulang halaman.";
   }
 }
 
-// ===== 7. Mulai skenario =====
+// ===== 7. Pilih bidang → profesi → kasus =====
+function tampilPilihan() {
+  daftarPilihan.innerHTML = "";
+
+  if (!pilihanBidang) {
+    judulPilih.textContent = "1. Pilih bidang";
+    tombolKembali.hidden = true;
+    DATA.kelompok.forEach((b) => {
+      const ikon = IKON_BIDANG[b.id] || "📌";
+      daftarPilihan.append(kartu(ikon + " " + b.nama, b.profesi.length + " profesi", () => {
+        pilihanBidang = b;
+        tampilPilihan();
+      }));
+    });
+  } else if (!pilihanProfesi) {
+    judulPilih.textContent = "2. Pilih profesi · " + pilihanBidang.nama;
+    tombolKembali.hidden = false;
+    pilihanBidang.profesi.forEach((p) => {
+      daftarPilihan.append(kartu(p.nama, p.kompetensi, () => {
+        pilihanProfesi = p;
+        tampilPilihan();
+      }));
+    });
+  } else {
+    judulPilih.textContent = "3. Pilih kasus · " + pilihanProfesi.nama;
+    tombolKembali.hidden = false;
+    pilihanProfesi.skenario.forEach((s, i) => {
+      daftarPilihan.append(kartu("Kasus " + (i + 1), s.masalah, () => {
+        mulaiSkenario({ ...s, profesi: pilihanProfesi, bidang: pilihanBidang });
+      }));
+    });
+  }
+}
+
+tombolKembali.addEventListener("click", () => {
+  if (pilihanProfesi) pilihanProfesi = null;
+  else pilihanBidang = null;
+  tampilPilihan();
+});
+
+function kartu(judul, keterangan, saatDiklik) {
+  const tombol = el("button", "kartu-skenario");
+  tombol.type = "button";
+  tombol.append(el("strong", "", judul), el("span", "", keterangan));
+  tombol.addEventListener("click", saatDiklik);
+  return tombol;
+}
+
+// ===== 8. Mulai kasus =====
 function mulaiSkenario(s) {
+  speechSynthesis.cancel();
   skenarioAktif = s;
   riwayat = [];
   sedangMenunggu = false;
@@ -102,23 +164,51 @@ function mulaiSkenario(s) {
   chat.innerHTML = "";
   bagianLaporan.hidden = true;
   bagianLaporan.innerHTML = "";
-  judulSkenario.textContent = s.judul;
+
+  judulSkenario.textContent = "Kamu sebagai: " + s.profesi.nama;
+  kartuTugas.innerHTML = "";
+  kartuTugas.append(
+    el("p", "label-tugas", "Situasi"),
+    el("p", "", s.masalah),
+    el("p", "label-tugas", "Tugasmu (bicara dalam bahasa Inggris)"),
+    el("p", "", DATA.tantangan)
+  );
+
   bagianPercakapan.hidden = false;
-  tampilStatus("");
-  perbaruiTombol();
-  tambahPesan("tamu", s.sapaan);
-  bicara(s.sapaan);
   bagianPercakapan.scrollIntoView({ behavior: "smooth" });
+  mintaPembuka();
 }
 
-// ===== 8. Kirim jawaban siswa ke AI tamu =====
+// AI membuka percakapan sesuai kasus (memperkenalkan diri dan masalahnya)
+async function mintaPembuka() {
+  sedangMenunggu = true;
+  perbaruiTombol();
+  tampilStatus("Menyiapkan situasi...");
+  try {
+    const data = await panggilAPI("/api/guest", { skenarioId: skenarioAktif.id, riwayat: [] });
+    tambahPesan("tamu", data.balasan);
+    bicara(data.balasan);
+    tampilStatus("");
+  } catch (err) {
+    tampilStatus(err.message + " ");
+    const ulang = el("button", "tombol-kecil", "Coba lagi");
+    ulang.type = "button";
+    ulang.addEventListener("click", mintaPembuka);
+    statusEl.append(ulang);
+  } finally {
+    sedangMenunggu = false;
+    perbaruiTombol();
+  }
+}
+
+// ===== 9. Kirim jawaban siswa ke AI lawan bicara =====
 async function kirimJawaban(teks) {
-  if (sedangMenunggu || percakapanSelesai || !skenarioAktif) return;
+  if (sedangMenunggu || percakapanSelesai || !skenarioAktif || riwayat.length === 0) return;
 
   tambahPesan("siswa", teks);
   sedangMenunggu = true;
   perbaruiTombol();
-  tampilStatus("Tamu sedang berpikir...");
+  tampilStatus("Lawan bicara sedang berpikir...");
 
   try {
     const data = await panggilAPI("/api/guest", { skenarioId: skenarioAktif.id, riwayat });
@@ -138,7 +228,7 @@ async function kirimJawaban(teks) {
   }
 }
 
-// ===== 9. Penilaian oleh AI =====
+// ===== 10. Penilaian oleh AI =====
 async function selesaiPercakapan() {
   percakapanSelesai = true;
   perbaruiTombol();
@@ -189,27 +279,30 @@ function tampilLaporan(data) {
   if (data.perbaikan.length) {
     bagianLaporan.append(el("h3", "", "Coba katakan seperti ini"));
     data.perbaikan.forEach((p) => {
-      const kartu = el("div", "kartu-perbaikan");
+      const kartuPerbaikan = el("div", "kartu-perbaikan");
       const dengar = el("button", "tombol-kecil", "🔊 Dengarkan");
       dengar.addEventListener("click", () => bicara(p.lebihBaik));
-      kartu.append(
+      kartuPerbaikan.append(
         el("p", "asli", "Kamu: " + p.asli),
         el("p", "lebih-baik", "Lebih baik: " + p.lebihBaik),
         el("p", "alasan", p.alasan),
         dengar
       );
-      bagianLaporan.append(kartu);
+      bagianLaporan.append(kartuPerbaikan);
     });
   }
 
   bagianLaporan.append(el("p", "disclaimer",
     "Nilai ini dibuat oleh AI sebagai umpan balik latihan, bukan nilai resmi. Guru tetap dapat meninjau hasilnya."));
-  const ulang = el("button", "tombol-sekunder", "Latihan lagi");
+
+  const ulang = el("button", "tombol-sekunder", "Latihan lagi (kasus yang sama)");
   ulang.addEventListener("click", () => mulaiSkenario(skenarioAktif));
-  bagianLaporan.append(ulang);
+  const lain = el("button", "tombol-sekunder", "Pilih kasus lain");
+  lain.addEventListener("click", () => bagianPilih.scrollIntoView({ behavior: "smooth" }));
+  bagianLaporan.append(ulang, lain);
 }
 
-// ===== 10. Fungsi-fungsi bantu =====
+// ===== 11. Fungsi-fungsi bantu =====
 // Kirim data ke server, dengan batas waktu 40 detik
 async function panggilAPI(url, body) {
   const pengendali = new AbortController();
@@ -234,22 +327,27 @@ async function panggilAPI(url, body) {
 
 function tambahPesan(peran, teks) {
   riwayat.push({ peran, teks });
-  const div = el("div", "pesan " + peran, teks);
-  chat.appendChild(div);
+  chat.appendChild(el("div", "pesan " + peran, teks));
   chat.scrollTop = chat.scrollHeight;
 }
 
 function bicara(teks) {
-  if (!("speechSynthesis" in window)) return;
-  const ucapan = new SpeechSynthesisUtterance(teks);
-  ucapan.lang = "en-US";
-  ucapan.rate = 0.95;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(ucapan);
+  // Kalau fitur suara browser bermasalah, percakapan tetap jalan lewat teks
+  try {
+    if (!("speechSynthesis" in window)) return;
+    const ucapan = new SpeechSynthesisUtterance(teks);
+    ucapan.lang = "en-US";
+    ucapan.rate = 0.95;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(ucapan);
+  } catch (err) {
+    console.warn("Suara tidak dapat diputar:", err.message);
+  }
 }
 
 function perbaruiTombol() {
-  const terkunci = sedangMenunggu || percakapanSelesai;
+  // Terkunci saat menunggu AI, setelah selesai, atau sebelum lawan bicara membuka percakapan
+  const terkunci = sedangMenunggu || percakapanSelesai || riwayat.length === 0;
   tombolRekam.disabled = terkunci || !pengenal;
   inputKetik.disabled = terkunci;
   tombolKirim.disabled = terkunci;
@@ -268,6 +366,6 @@ function el(tag, className = "", teks = "") {
   return e;
 }
 
-// ===== 11. Jalankan saat halaman dibuka =====
+// ===== 12. Jalankan saat halaman dibuka =====
 perbaruiTombol();
-muatSkenario();
+muatData();

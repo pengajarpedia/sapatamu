@@ -1,12 +1,7 @@
-import { SKENARIO } from "../lib/scenarios.js";
+import { KELOMPOK, TANTANGAN } from "../lib/scenarios.js";
 
+// Mengirim daftar bidang, profesi, dan kasus ke browser.
+// Data ini tidak rahasia; instruksi untuk AI tetap dibuat di server (api/guest.js).
 export default function handler(req, res) {
-  // Hanya kirim data yang dibutuhkan browser, bukan instruksi untuk AI
-  const daftar = Object.entries(SKENARIO).map(([id, s]) => ({
-    id,
-    judul: s.judul,
-    deskripsi: s.deskripsi,
-    sapaan: s.sapaan
-  }));
-  res.status(200).json(daftar);
+  res.status(200).json({ tantangan: TANTANGAN, kelompok: KELOMPOK });
 }

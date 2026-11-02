@@ -1,14 +1,22 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, sans-serif; background: #f5f7fa; color: #1f2933; }
-.container { max-width: 640px; margin: 0 auto; padding: 16px; }
+.container { max-width: 720px; margin: 0 auto; padding: 16px; }
 header h1 { margin-bottom: 4px; color: #0f6e56; }
 header p { margin-top: 0; color: #52606d; }
 section { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
 
-/* Kartu skenario */
-.kartu-skenario { display: block; width: 100%; text-align: left; padding: 12px; margin-bottom: 8px; border: 1px solid #d9e2ec; border-radius: 8px; background: #fff; cursor: pointer; font: inherit; }
+/* Pilih bidang, profesi, kasus */
+.kepala-pilih { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kepala-pilih h2 { margin: 8px 0; font-size: 20px; }
+.daftar-pilihan { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-top: 8px; }
+.kartu-skenario { display: block; width: 100%; text-align: left; padding: 12px; border: 1px solid #d9e2ec; border-radius: 8px; background: #fff; cursor: pointer; font: inherit; color: inherit; }
 .kartu-skenario:hover { border-color: #0f6e56; }
 .kartu-skenario span { display: block; color: #52606d; font-size: 14px; margin-top: 4px; }
+
+/* Kartu tugas sebelum percakapan */
+.kartu-tugas { background: #fff8e6; border: 1px solid #f0d58a; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.kartu-tugas p { margin: 2px 0 8px; line-height: 1.4; }
+.label-tugas { font-size: 12px; font-weight: 700; color: #8a5a00; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0 !important; }
 
 /* Percakapan */
 #chat { min-height: 150px; max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
@@ -21,7 +29,7 @@ section { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 1
 #tombol-rekam { width: 100%; padding: 14px; font-size: 16px; border: none; border-radius: 8px; background: #0f6e56; color: #fff; cursor: pointer; }
 #tombol-rekam:disabled { background: #9fb3c8; cursor: not-allowed; }
 #form-ketik { display: flex; gap: 8px; margin-top: 8px; }
-#form-ketik input { flex: 1; padding: 10px; border: 1px solid #d9e2ec; border-radius: 8px; font: inherit; }
+#form-ketik input { flex: 1; min-width: 0; padding: 10px; border: 1px solid #d9e2ec; border-radius: 8px; font: inherit; }
 #form-ketik button { padding: 10px 14px; border: none; border-radius: 8px; background: #334e68; color: #fff; cursor: pointer; }
 #form-ketik input:disabled, #form-ketik button:disabled { opacity: 0.5; cursor: not-allowed; }
 .tombol-sekunder { margin-top: 8px; width: 100%; padding: 12px; border: 1px solid #0f6e56; border-radius: 8px; background: #fff; color: #0f6e56; font: inherit; cursor: pointer; }

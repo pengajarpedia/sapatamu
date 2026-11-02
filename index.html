@@ -10,20 +10,24 @@
   <main class="container">
     <header>
       <h1>SapaTamu</h1>
-      <p>Latihan berbicara bahasa Inggris untuk melayani tamu di Bali</p>
+      <p>Latihan bahasa Inggris untuk profesi pariwisata di Bali</p>
     </header>
 
-    <!-- Bagian 1: pilih skenario -->
-    <section id="pilih-skenario">
-      <h2>Pilih skenario</h2>
-      <div id="daftar-skenario"></div>
+    <!-- Bagian 1: pilih bidang → profesi → kasus -->
+    <section id="pilih">
+      <div class="kepala-pilih">
+        <button id="tombol-kembali" type="button" class="tombol-kecil" hidden>← Kembali</button>
+        <h2 id="judul-pilih">Pilih bidang</h2>
+      </div>
+      <div id="daftar-pilihan" class="daftar-pilihan"></div>
     </section>
 
-    <!-- Bagian 2: percakapan (tersembunyi sampai skenario dipilih) -->
+    <!-- Bagian 2: percakapan (tersembunyi sampai kasus dipilih) -->
     <section id="percakapan" hidden>
       <h2 id="judul-skenario"></h2>
+      <div id="kartu-tugas" class="kartu-tugas"></div>
       <div id="chat"></div>
-      <p class="privasi">Suaramu diubah menjadi teks oleh browser. Rekaman suara tidak disimpan.</p>
+      <p class="privasi">Suaramu diubah menjadi teks oleh browser. Rekaman suara tidak disimpan. Jangan menyebut data pribadi asli.</p>
       <button id="tombol-rekam">🎤 Tekan untuk bicara</button>
       <form id="form-ketik">
         <input id="input-ketik" placeholder="Atau ketik jawabanmu di sini..." autocomplete="off">
