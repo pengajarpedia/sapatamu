@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SapaTamu – Latihan Melayani Tamu</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>SapaTamu</h1>
+      <p>Latihan berbicara bahasa Inggris untuk melayani tamu di Bali</p>
+    </header>
+
+    <!-- Bagian 1: pilih skenario -->
+    <section id="pilih-skenario">
+      <h2>Pilih skenario</h2>
+      <div id="daftar-skenario"></div>
+    </section>
+
+    <!-- Bagian 2: percakapan (tersembunyi sampai skenario dipilih) -->
+    <section id="percakapan" hidden>
+      <h2 id="judul-skenario"></h2>
+      <div id="chat"></div>
+      <p class="privasi">Suaramu diubah menjadi teks oleh browser. Rekaman suara tidak disimpan.</p>
+      <button id="tombol-rekam">🎤 Tekan untuk bicara</button>
+      <form id="form-ketik">
+        <input id="input-ketik" placeholder="Atau ketik jawabanmu di sini..." autocomplete="off">
+        <button type="submit">Kirim</button>
+      </form>
+      <p id="status"></p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
