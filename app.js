@@ -109,9 +109,27 @@ async function muatData() {
 
 // ===== 7. Pilih bidang → profesi → kasus =====
 const jejak = document.getElementById("jejak");
+const bannerBidang = document.getElementById("banner-bidang");
+const gambarBanner = document.getElementById("gambar-banner");
+
+// Kalau file ilustrasi bidang belum ada, banner disembunyikan
+gambarBanner.addEventListener("error", () => { bannerBidang.hidden = true; });
+
+// Tampilkan ilustrasi bidang (img/<id-bidang>.jpg) di langkah pilih profesi dan kasus
+function tampilBanner(bidang) {
+  if (!bidang) {
+    bannerBidang.hidden = true;
+    return;
+  }
+  const src = "img/" + bidang.id + ".jpg";
+  if (gambarBanner.getAttribute("src") !== src) gambarBanner.src = src;
+  gambarBanner.alt = "Ilustrasi profesi di bidang " + bidang.nama;
+  bannerBidang.hidden = false;
+}
 
 function tampilPilihan() {
   daftarPilihan.innerHTML = "";
+  tampilBanner(pilihanBidang);
 
   if (!pilihanBidang) {
     judulPilih.textContent = "Pilih bidang";

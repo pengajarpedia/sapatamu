@@ -84,6 +84,17 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 16px 24px; }
 .jejak { margin: 4px 0 0; color: var(--tinta-lembut); font-size: 14px; min-height: 1.2em; }
 .daftar-pilihan { margin-top: 16px; display: grid; gap: 12px; }
 
+/* Ilustrasi bidang di langkah pilih profesi dan kasus.
+   HP: di atas daftar, dipotong 4:3. Layar lebar: utuh di samping daftar. */
+.banner-bidang { margin: 16px 0 0; }
+.banner-bidang img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: center 40%; border-radius: var(--radius); background: var(--daun-muda); }
+@media (min-width: 760px) {
+  .isi-pilih:has(.banner-bidang:not([hidden])) { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 24px; align-items: start; }
+  .isi-pilih:has(.banner-bidang:not([hidden])) .banner-bidang { position: sticky; top: 16px; }
+  .banner-bidang img { aspect-ratio: 1; }
+  .isi-pilih:has(.banner-bidang:not([hidden])) .daftar-profesi { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
+
 /* Bidang: kartu bergambar */
 .daftar-bidang { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .kartu-bidang { display: flex; flex-direction: column; text-align: left; padding: 0; border: 1px solid var(--garis); border-radius: var(--radius); background: var(--permukaan); overflow: hidden; cursor: pointer; }
