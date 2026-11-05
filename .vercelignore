@@ -1,3 +1,4 @@
 .env
 .env*.local
 tes-gemini.js
+docs

@@ -36,6 +36,23 @@ Semua fitur berikut sudah berfungsi pada versi yang disubmit:
 7. **Penanganan kegagalan.** Batas waktu tunggu, pesan error yang jelas, jawaban siswa dikembalikan ke kolom ketik bila gagal terkirim, dan cadangan model AI otomatis.
 8. **Tampilan responsif** untuk HP dan laptop.
 
+## Screenshots
+
+Alur penggunaan dari halaman pembuka sampai saran perbaikan, diambil dari HP Android.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/1-pembuka.png" width="220" alt="Halaman pembuka"><br><sub><b>1. Halaman pembuka</b><br>Ringkasan aplikasi, tanpa instalasi dan login</sub></td>
+    <td align="center"><img src="docs/screenshots/2-pilih-bidang.png" width="220" alt="Pilih bidang"><br><sub><b>2. Pilih bidang</b><br>8 bidang pariwisata</sub></td>
+    <td align="center"><img src="docs/screenshots/3-pilih-kasus.png" width="220" alt="Pilih kasus"><br><sub><b>3. Pilih kasus</b><br>Contoh profesi Receptionist</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/4-percakapan.png" width="220" alt="Percakapan dengan AI"><br><sub><b>4. Percakapan dengan AI</b><br>Jawab lewat suara atau ketik</sub></td>
+    <td align="center"><img src="docs/screenshots/5-laporan-nilai.png" width="220" alt="Laporan nilai"><br><sub><b>5. Laporan nilai</b><br>Skor dengan 4 kriteria rubrik</sub></td>
+    <td align="center"><img src="docs/screenshots/6-saran-perbaikan.png" width="220" alt="Saran perbaikan"><br><sub><b>6. Saran perbaikan</b><br>Kalimat yang lebih baik dan bisa didengarkan</sub></td>
+  </tr>
+</table>
+
 ## Tech Stack
 
 | Bagian | Teknologi |
